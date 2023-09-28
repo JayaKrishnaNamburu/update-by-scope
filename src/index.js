@@ -18,7 +18,9 @@ args
   )
   .option(["t", "tag"], "NPM tag", "latest")
   .option("v", "Show version")
-  .option("h", "Show help");
+  .option("h", "Show help")
+  .option(["f", "filter"], "Filter package names")
+
 
 const flags = args.parse(process.argv, {
   value: `<scope> [npmClient=${defaultNpmClient}] [npmClientCommand=${defaultNpmCommand}]`,
@@ -51,10 +53,26 @@ const { dependencies = {}, devDependencies = {} } = JSON.parse(
   fs.readFileSync(Path.join(process.cwd(), "./package.json"))
 );
 
+const packagesToIgnore = []
+
+if (flags.f) {
+  packagesToIgnore.push(...flags.f.split(','))
+}
+
+const checkForSubset = (mainString, arrayOfElements) => {
+  for (const element of arrayOfElements) {
+    if (mainString.includes(element) && mainString !== element) {
+      return element;
+    }
+  }
+  return null;
+};
+
+
 const packageNames = Array.from(
   new Set(
     [...Object.keys(dependencies), ...Object.keys(devDependencies)].filter(_ =>
-      _.startsWith(scope)
+      _.startsWith(scope) && !checkForSubset(_, packagesToIgnore)
     )
   )
 ).sort();
